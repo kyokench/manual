@@ -14,29 +14,29 @@ document.addEventListener('DOMContentLoaded', function () {
   const currentFilePath = window.location.pathname;
 
 
-  let homeLink, blogLink, sonotaLink, todoLink, calendarLink;
+  let homeLink, gijyutuLink, sonotaLink, todoLink, calendarLink;
 
-  if (currentDir === 'blog') {
+  if (currentDir === 'gijyutu') {
     homeLink     = '../index.html';
-    blogLink     = 'blog.html';
+    gijyutuLink     = 'gijyutu.html';
     sonotaLink   = '../sonota/sonota.html';
     todoLink     = '../kihon/todo.html';
     calendarLink = '../kihon/calendar.html';
   } else if (currentDir === 'kihon') {
     homeLink     = '../index.html';
-    blogLink     = '../blog/blog.html';
+    gijyutuLink     = '../gijyutu/gijyutu.html';
     sonotaLink   = '../sonota/sonota.html';
     todoLink     = 'todo.html';
     calendarLink = 'calendar.html';
   } else if (currentDir === 'sonota') {
     homeLink     = '../index.html';
-    blogLink     = '../blog/blog.html';
+    gijyutuLink     = '../gijyutu/gijyutu.html';
     sonotaLink   = 'sonota.html';
     todoLink     = '../kihon/todo.html';
     calendarLink = '../kihon/calendar.html';
   } else {
     homeLink     = 'index.html';
-    blogLink     = 'blog/blog.html';
+    gijyutuLink     = 'gijyutu/gijyutu.html';
     sonotaLink   = 'sonota/sonota.html';
     todoLink     = 'kihon/todo.html';
     calendarLink = 'kihon/calendar.html';
@@ -96,8 +96,8 @@ document.addEventListener('DOMContentLoaded', function () {
     <nav class="main-nav" id="main-nav-menu">
       <ul>
         <li><a href="${homeLink}">ホーム</a></li>
-        <li><a href="${blogLink}">ブログ</a></li>
         <li><a href="${sonotaLink}">その他</a></li>
+        <li><a href="${gijyutuLink}">技術</a></li>
       </ul>
     </nav>
   </div>
@@ -106,8 +106,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const sidebarContent = `
 <ul>
-  <li><a href="${vscodeFileUri}">VS Codeで開く</a></li>
-  <li><a href="${vscodeFolderUri}">フォルダを開く</a></li>
+  <!-- <li><a href="${vscodeFileUri}">VS Codeで開く</a></li> -->
+  <!-- <li><a href="${vscodeFolderUri}">フォルダを開く</a></li> -->
   <li><a href="${notepadFileUri}">メモ帳で開く</a></li>
   <li><a href="${explorerFolderUri}">エクスプローラーで開く</a></li>
   <li><a href="${todoLink}">TODOリスト</a></li>
@@ -150,4 +150,29 @@ document.addEventListener('DOMContentLoaded', function () {
       noTodoMessage.style.display = 'block';
     }
   }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const debugDiv = document.getElementById('debug');
+
+  document.querySelectorAll('a.openfolder').forEach(a => {
+    const raw = a.dataset.path || '';
+
+    // セグメントごとに encodeURIComponent して openfolder: URI を生成
+    const uri = 'openfolder:' +
+      raw.replace(/\\/g, '/')
+         .split('/')
+         .map(encodeURIComponent)
+         .join('/');
+
+    a.href = uri;
+
+    // デバッグ出力（#debug があるときだけ）
+    if (debugDiv) {
+      debugDiv.innerHTML += `<p>元のパス: ${raw}<br>変換後URI: ${uri}</p>`;
+    }
+
+    // クリック時ログ（任意）
+    a.addEventListener('click', () => console.log('クリック:', uri));
+  });
 });
