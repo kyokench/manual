@@ -1,0 +1,8 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\Classes\note]
+@="URL:Note Protocol"
+"URL Protocol"=""
+
+[HKEY_CURRENT_USER\Software\Classes\note\shell\open\command]
+@="wscript.exe \"C:\\scripts\\note_open.vbs\" \"%1\""
