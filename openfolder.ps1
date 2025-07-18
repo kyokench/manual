@@ -1,42 +1,35 @@
-param(
-    [string]$Path
-)
+﻿<#
+  openfolder.ps1  –  ブラウザの openfolder: URI からフォルダを開く最終版
+  2025‑07‑18
+#>
 
-# デバッグ用：受け取った引数を表示
-[System.Windows.Forms.MessageBox]Show(受け取った引数 $Path, デバッグ)
+param([string]$Path)
 
-# openfolder の接頭辞を削除
-if ($Path.StartsWith(openfolder)) {
-    $Path = $Path.Substring(13)
-} elseif ($Path.StartsWith(openfolder)) {
-    $Path = $Path.Substring(11)
-}
+# ─ 1. 接頭辞 openfolder: を除去 ───────────────────────────
+$Path = $Path -replace '^openfolder:(//)?', ''
 
-# URLデコード
+# ─ 2. URL デコード → /→\ 変換 → トリム & 制御文字除去 ──────────
 Add-Type -AssemblyName System.Web
-$decodedPath = [System.Web.HttpUtility]UrlDecode($Path)
+$decodedPath = [System.Web.HttpUtility]::UrlDecode($Path)
+$decodedPath = $decodedPath -replace '/', '\'
+$decodedPath = $decodedPath.Trim(' "', "`t", "`r", "`n")
+$decodedPath = [regex]::Replace($decodedPath, '\p{C}', '')   # 制御文字全除去
 
-# スラッシュをバックスラッシュに変換
-$decodedPath = $decodedPath.Replace(, )
-
-# デバッグ用：デコードされたパスを表示
-[System.Windows.Forms.MessageBox]Show(デコードされたパス $decodedPath, デバッグ)
-
-# フォルダの存在確認
-if (Test-Path $decodedPath -PathType Container) {
-    # Explorer でフォルダを開く
-    Start-Process explorer.exe -ArgumentList $decodedPath
-} else {
-    [System.Windows.Forms.MessageBox]Show(フォルダが見つかりません $decodedPath, エラー)
-    
-    # 親フォルダの確認
-    $parentPath = Split-Path $decodedPath -Parent
-    if ($parentPath -and (Test-Path $parentPath -PathType Container)) {
-        [System.Windows.Forms.MessageBox]Show(親フォルダは存在します $parentPath, 情報)
-    } else {
-        [System.Windows.Forms.MessageBox]Show(親フォルダも見つかりません $parentPath, エラー)
-    }
+# ─ 3. UNC / ローカル判定 & 正規化 ─────────────────────────
+if ($decodedPath -match '^[A-Za-z]:\\') {
+    # ローカル (D:\…) はそのまま
+}
+else {
+    # UNC：先頭 / \ を取り除き、\\ を付与
+    $decodedPath = '\\\\' + ($decodedPath -replace '^[\\/]+', '')
 }
 
-# Windows.Forms を読み込み
-Add-Type -AssemblyName System.Windows.Forms
+# 先頭に \ が 3 本以上付いていないか最終チェック
+while ($decodedPath.StartsWith('\\\')) { $decodedPath = $decodedPath.Substring(1) }
+
+# ─ 4. デバッグログ（任意。不要ならコメントアウト） ──────────────
+Add-Content -LiteralPath "$env:TEMP\openfolder_debug.txt" `
+    -Value ("[{0}] <{1}>" -f (Get-Date -Format 'HH:mm:ss'), $decodedPath)
+
+# ─ 5. エクスプローラーでフォルダを開く ─────────────────────
+Start-Process -FilePath explorer.exe -ArgumentList $decodedPath
