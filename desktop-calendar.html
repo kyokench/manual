@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>カレンダー（当月デフォルト表示）</title>
+
+<!-- 共通CSS -->
+<link rel="stylesheet" href="../style.css?20250705">
+
+<!-- サイドバーJS -->
+<script defer src="../sidebar.js"></script>
+
+<!-- jsPDF & autotable -->
+<script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://kyokench.github.io/4masumemo/NotoSansJP-Regular-base64_2.js"></script>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;  /* ← 画面幅いっぱいに */
+  overflow-x: hidden;
+}
+
+.page-wrapper {
+  width: 100%;
+  max-width: none;
+}
+
+.layout {
+  display: flex;
+  margin: 0 auto;
+  max-width: none; /* ← ★これを追加または上書き */
+  width: 100%;     /* ← 必要に応じて指定 */
+}
+
+.content-wrapper {
+  flex: 1;
+  width: 100%;
+  max-width: none;
+}
+
+nav#sidebar { width: 200px; background: #f4f4f4; padding: 10px; }
+main.main {
+  flex: 1;
+  padding: 20px;
+  width: 900px;            /* ←ここを変更！ */
+  box-sizing: border-box; /* ←任意だが追加推奨 */
+  max-width:100%;
+}
+
+table.calendar {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+.calendar th, .calendar td { border: 1px solid #ccc; padding: 4px; }
+.calendar th { background: #e9ecef; }
+
+
+textarea{
+  width:100%;
+  resize:none;
+  border:none;
+  color:inherit;
+  height:100px;
+  box-sizing:border-box;   /* パディング込みで 100% に収める */
+  overflow:hidden;         /* スクロールバーを出さない (任意) */
+}
+
+.btn-group { margin: 20px 0; }
+button { padding: 8px 16px; margin-right: 8px; }
+
+/* ──── 昨日以前の行を青字 ──── */
+.past td,
+.past textarea {
+  color: #007bff;
+}
+
+.toast{
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #333;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity .3s, transform .3s;
+  pointer-events: none;
+  z-index: 9999;
+}
+.toast.show{
+  opacity: 0.9;
+  transform: translateY(0);
+}
+
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  nav#sidebar { width: 100%; }
+}
+</style>
+</head>
+
+<body>
+  <div id="header-placeholder"></div>
+  <div class="page-wrapper">
+    <div class="layout">
+    <aside id="sidebar"><!-- サイドバーを JS で差し込み --></aside>
+
+    <div class="content-wrapper">
+      <main class="main">
+
+        <h2 class="hyoudai" style="margin-bottom:15px;">カレンダー</h2>
+
+        <!-- 期間指定フォーム -->
+        <div>
+          <label>開始日 <input type="date" id="startDate"></label>
+          <label>終了日 <input type="date" id="endDate"></label>
+          <button id="showBtn">表示</button>
+        </div>
+
+        <!-- 操作ボタン -->
+        <div class="btn-group">
+          <button id="saveBtn">保存</button>
+          <button id="pdfBtn">PDF出力</button>
+          <button id="csvBtn">CSV出力</button>
+          <button id="htmlBtn">HTML出力</button> <!-- ★ここを追加 -->
+        </div>
+
+        <!-- カレンダーテーブル -->
+        <table class="calendar">
+          <thead>
+            <tr>
+              <th scope="col">日付</th>
+              <th scope="col">曜日</th>
+              <th scope="col">予定1</th>
+              <th scope="col">予定2</th>
+              <th scope="col">備考</th>
+            </tr>
+          </thead>
+          <tbody id="calBody"></tbody>
+        </table>
+      </main>
+    </div>
+    </div>
+  </div>
+
+<script src="../load_header.js" defer></script>
+<script>
+// ===== 共通参照 =====
+const tbody          = document.getElementById('calBody');
+const saveBtn        = document.getElementById('saveBtn');
+const pdfBtn         = document.getElementById('pdfBtn');
+const csvBtn         = document.getElementById('csvBtn');
+const startDateInput = document.getElementById('startDate');
+const endDateInput   = document.getElementById('endDate');
+
+// 日付フォーマット YYYY-MM-DD
+const ymd = d => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+const key = d => `calendar_${d}`;
+
+// ===== カレンダー生成 =====
+function generateCalendar(start, end) {
+  tbody.innerHTML = '';
+  let d = new Date(start);
+  const endDate = new Date(end);
+
+  /* 今日の 0:00 */
+  const todayZero = new Date();
+  todayZero.setHours(0, 0, 0, 0);
+  const todayStr = ymd(todayZero); // ← 追加
+
+  /* 曜日配列 */
+  const wdays = ['日', '月', '火', '水', '木', '金', '土'];
+
+  while (d <= endDate) {
+    const rowDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const dateStr = ymd(d);
+    const wStr    = wdays[d.getDay()];
+    const tr = document.createElement('tr');
+
+    if (rowDate < todayZero) tr.classList.add('past');
+
+    // ★ 今日の日付に「（本日）」を付ける
+    const isToday = dateStr === todayStr;
+    const dateDisplay = isToday ? `${dateStr}（本日）` : dateStr;
+
+    tr.innerHTML = `<td>${dateDisplay}</td><td>${wStr}</td>`;
+
+    const savedRaw = JSON.parse(localStorage.getItem(key(dateStr)) || '[]');
+    const saved    = [...savedRaw, '', '', ''].slice(0, 3);
+    for (let col = 0; col < 3; col++) {
+      const td = document.createElement('td');
+      const ta = document.createElement('textarea');
+      ta.dataset.date = dateStr;
+      ta.dataset.col  = col;
+      ta.value        = saved[col] || '';
+      td.appendChild(ta);
+      tr.appendChild(td);
+    }
+
+    tbody.appendChild(tr);
+    d.setDate(d.getDate() + 1);
+  }
+}
+
+/* ===== トースト関数 ===== */
+function showToast(msg) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+
+  // 表示トリガー
+  requestAnimationFrame(() => toast.classList.add('show'));
+
+  // 非表示にするタイマー（3秒後に .show を外す）
+  const hideTimeout = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 1500);
+
+  // アニメーション終了後に要素削除
+  toast.addEventListener('transitionend', (e) => {
+    // 「非表示状態」かつ opacity 変化が完了したときだけ削除
+    if (!toast.classList.contains('show') && e.propertyName === 'opacity') {
+      clearTimeout(hideTimeout); // 念のため
+      toast.remove();
+    }
+  });
+}
+
+
+
+// ===== 期間指定表示 =====
+document.getElementById('showBtn').addEventListener('click', () => {
+  const start = startDateInput.value;
+  const end   = endDateInput.value;
+  if (!start || !end) {
+    alert('開始日と終了日を指定してください');
+    return;
+  }
+  generateCalendar(start, end);
+});
+
+// ===== 保存 =====
+function save() {
+  const grouped = {};
+  tbody.querySelectorAll('textarea').forEach(t => {
+    const { date, col } = t.dataset;
+    grouped[date] = grouped[date] || ['', '', ''];
+    grouped[date][Number(col)] = t.value;
+  });
+  Object.entries(grouped).forEach(([d, a]) =>
+    localStorage.setItem(key(d), JSON.stringify(a))
+  );
+
+  /* 変更 ↓ */
+  showToast('保存しました');
+}
+
+saveBtn.addEventListener('click', save);
+
+/* ===== PDF 出力 ===== */
+pdfBtn.addEventListener('click', () => {
+  save(); // 最新保存
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  // ✅ 日本語フォント対応
+  doc.addFileToVFS("NotoSansJP-Regular.ttf", window.NotoSansJP_Base64);
+  doc.addFont("NotoSansJP-Regular.ttf", "NotoSansJP", "normal");
+  doc.setFont("NotoSansJP");
+
+  doc.setFontSize(10);
+  doc.text('期間指定カレンダー', 40, 40);
+
+  const bodyData = [...tbody.rows].map(tr => [
+    tr.cells[0].textContent,
+    tr.cells[1].textContent,
+    tr.cells[2].querySelector('textarea').value.replace(/\n/g, ' / '),
+    tr.cells[3].querySelector('textarea').value.replace(/\n/g, ' / '),
+    tr.cells[4].querySelector('textarea').value.replace(/\n/g, ' / ')
+  ]);
+
+  doc.autoTable({
+    head: [['日付', '曜', '予定1', '予定2', '備考']],
+    body: bodyData,
+    startY: 60,
+    styles: {
+      font: "NotoSansJP",
+      fontSize: 10,
+      cellPadding: 3
+    },
+    headStyles: {
+      fillColor: [233, 236, 239]
+    },
+    columnStyles: {
+      0: { cellWidth: 70 },   // 日付
+      1: { cellWidth: 20 },   // 曜
+      2: { cellWidth: 130 },  // 予定1
+      3: { cellWidth: 130 },  // 予定2
+      4: { cellWidth: 170 }   // 備考
+    }
+  });
+
+
+  doc.save(`calendar_${Date.now()}.pdf`);
+});
+
+
+/* ===== CSV 出力 ===== */
+csvBtn.addEventListener('click', () => {
+  save();                                         // まず保存
+  let csv = '\uFEFF日付,曜,予定1,予定2,備考\n';     // 5 列ヘッダー
+
+  [...tbody.rows].forEach(tr => {
+    const date = tr.cells[0].textContent;
+    const w    = tr.cells[1].textContent;
+    const s1   = tr.cells[2].querySelector('textarea').value.replace(/\n/g, ' / ').replace(/"/g, '""');
+    const s2   = tr.cells[3].querySelector('textarea').value.replace(/\n/g, ' / ').replace(/"/g, '""');
+    const note = tr.cells[4].querySelector('textarea').value.replace(/\n/g, ' / ').replace(/"/g, '""');
+
+    csv += `"${date}","${w}","${s1}","${s2}","${note}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `calendar_${Date.now()}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+});
+
+/* ===== HTML 出力（ダウンロード形式） ===== */
+document.getElementById('htmlBtn').addEventListener('click', () => {
+  save(); // 最新内容を保存
+
+  // HTML内容構築
+  let html = `
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+      <meta charset="UTF-8">
+      <title>期間指定カレンダー</title>
+      <style>
+        body { font-family: sans-serif; padding: 20px; }
+        h1 { font-size: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #999; padding: 6px; font-size: 14px; }
+        th { background: #f2f2f2; }
+      </style>
+    </head>
+    <body>
+      <h1>期間指定カレンダー</h1>
+      <table>
+        <thead>
+          <tr><th>日付</th><th>曜</th><th>予定1</th><th>予定2</th><th>備考</th></tr>
+        </thead>
+        <tbody>
+  `;
+
+  [...tbody.rows].forEach(tr => {
+    const date = tr.cells[0].textContent;
+    const w    = tr.cells[1].textContent;
+    const s1   = tr.cells[2].querySelector('textarea').value.replace(/\n/g, '<br>');
+    const s2   = tr.cells[3].querySelector('textarea').value.replace(/\n/g, '<br>');
+    const note = tr.cells[4].querySelector('textarea').value.replace(/\n/g, '<br>');
+
+    html += `
+      <tr>
+        <td>${date}</td>
+        <td>${w}</td>
+        <td>${s1}</td>
+        <td>${s2}</td>
+        <td>${note}</td>
+      </tr>`;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </body>
+    </html>
+  `;
+
+  // Blob化 → ダウンロードリンク生成
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `calendar_${Date.now()}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+
+
+// ===== 初期表示（当月） =====
+window.addEventListener('DOMContentLoaded', () => {
+  const today    = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lastDay  = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+  const startStr = ymd(firstDay);
+  const endStr   = ymd(lastDay);
+
+  startDateInput.value = startStr;
+  endDateInput.value   = endStr;
+
+  generateCalendar(startStr, endStr);
+});
+</script>
+</body>
+</html>
