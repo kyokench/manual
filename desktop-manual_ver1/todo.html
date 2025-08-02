@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODOリスト</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <div id="header-placeholder"></div>
+    <div class="page-wrapper">
+        <aside id="sidebar">
+            <!-- Sidebar content will be injected here by JS -->
+        </aside>
+        <div class="content-wrapper">
+            <div class="main">
+                <h1 class="hyoudai" style="margin-bottom:0;">TODOリスト</h1>
+                <div class="todo-container" style="display: flex; gap: 8px; align-items: center;">
+ 	<input type="text" id="todo-input" placeholder="新しいタスクを追加">
+ 	 <button id="add-todo-btn" style="padding: 11px 16px; writing-mode: horizontal-tb; line-height: 1; white-space: nowrap;">追加</button>
+                </div>
+                    <ul id="todo-list"></ul>
+            </div>
+        </div>
+    </div>
+    <script src="../load_header.js"></script>
+    <script src="todo.js"></script>
+</body>
+</html>
