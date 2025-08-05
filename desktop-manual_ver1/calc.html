@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>計算支援</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://kyokench.github.io/4masumemo/NotoSansJP-Regular-base64_2.js"></script>
+
+  <style>
+    .calculator {
+      max-width: 400px;
+      margin: 40px auto;
+      padding: 20px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      background: #f9f9f9;
+      text-align: center;
+    }
+    .calculator input {
+      width: 80px;
+      margin: 5px;
+      padding: 8px;
+      font-size: 1rem;
+    }
+    .calculator button {
+      margin: 5px;
+      padding: 8px 16px;
+      font-size: 1rem;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    .history {
+      margin-top: 40px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .history-entry {
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #fff;
+      position: relative;
+    }
+    .history-entry textarea {
+      width: 100%;
+      margin-top: 8px;
+      padding: 6px;
+      resize: vertical;
+    }
+    .delete-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background-color: #ff5555;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+<div id="header-placeholder"></div>
+<div class="page-wrapper">
+  <aside id="sidebar"></aside>
+  <div class="content-wrapper">
+    <div class="main">
+      <div class="calculator">
+        <h2>計算支援ツール</h2>
+        <input type="number" id="num1" placeholder="数値1">
+        <input type="number" id="num2" placeholder="数値2"><br>
+        <button onclick="setOperator('+')">＋</button>
+        <button onclick="setOperator('-')">−</button>
+        <button onclick="setOperator('*')">×</button>
+        <button onclick="setOperator('/')">÷</button>
+        <button onclick="calculate()">＝</button>
+        <div class="result" id="result">答え： </div>
+      </div>
+
+      <div class="history" id="history">
+        <h3 style="display:flex;justify-content:space-between;align-items:center;">
+          計算履歴
+        </h3>
+
+        <div id="history-entries"></div>
+        <div style="text-align:center; margin-top:10px;">
+          <button onclick="clearAllHistory()" style="font-size:0.9rem;padding:4px 10px;background:#aaa;color:#fff;border:none;border-radius:4px;cursor:pointer;">
+            すべて削除
+          </button>
+          <button onclick="exportHistoryAsHTML()" style="font-size:0.9rem;padding:4px 10px;background:#4CAF50;color:#fff;border:none;border-radius:4px;cursor:pointer; margin-left: 10px;">
+            HTML出力
+          </button>
+          <button onclick="exportHistoryAsPDF()" style="font-size:0.9rem;padding:4px 10px;background:#2196F3;color:#fff;border:none;border-radius:4px;cursor:pointer; margin-left: 10px;">
+          PDF出力
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../load_header.js"></script>
+<script>
+
+let currentOperator = null;
+
+  window.addEventListener("DOMContentLoaded", () => {
+    renderAllHistory();
+  });
+
+function calculate() {
+  const num1 = parseFloat(document.getElementById("num1").value);
+  const num2 = parseFloat(document.getElementById("num2").value);
+  const resultBox = document.getElementById("result");
+
+  if (!currentOperator) {
+    resultBox.textContent = "演算子（＋、−、×、÷）を先に選択してください";
+    return;
+  }
+
+  if (isNaN(num1) || isNaN(num2)) {
+    resultBox.textContent = "数値を入力してください";
+    return;
+  }
+
+  let result;
+  switch (currentOperator) {
+    case '+': result = num1 + num2; break;
+    case '-': result = num1 - num2; break;
+    case '*': result = num1 * num2; break;
+    case '/': result = (num2 === 0) ? "0で割れません" : (num1 / num2); break;
+  }
+
+  resultBox.textContent = "答え： " + formatNumber(result);
+
+  // 結果を num1 にセットし、num2はリセット
+  if (!isNaN(result)) {
+    document.getElementById("num1").value = result;
+    document.getElementById("num2").value = "";
+    document.getElementById("num2").focus();
+  }
+
+  const entry = {
+    id: Date.now(),
+    formula: `${num1} ${currentOperator} ${num2}`,
+    result: result,
+    comment: ""
+  };
+
+  currentOperator = null;
+  saveEntry(entry);
+  renderAllHistory();
+}
+
+
+function renderAllHistory() {
+  const container = document.getElementById("history-entries");
+  container.innerHTML = "";
+
+  const historyArray = JSON.parse(localStorage.getItem("calcHistory")) || [];
+
+historyArray.slice().reverse().forEach(entry => {
+  const div = document.createElement("div");
+  div.className = "history-entry";
+  div.dataset.id = entry.id;
+
+  div.innerHTML = `
+    <button class="delete-btn" onclick="deleteEntry(${entry.id})">削除</button>
+    <div>計算式： ${entry.formula} = ${formatNumber(entry.result)}</div>
+    <textarea placeholder="コメントを入力..." rows="2">${entry.comment || ""}</textarea>
+  `;
+
+  const textarea = div.querySelector("textarea");
+  textarea.addEventListener("input", () => {
+    updateComment(entry.id, textarea.value);
+  });
+
+  container.appendChild(div);
+});
+
+  // ← ここが「履歴出力後」です！
+  // SortableJS によるドラッグ操作の有効化
+  Sortable.create(container, {
+    animation: 150,
+    onEnd: saveSortedOrder
+  });
+}
+
+  function saveEntry(entry) {
+    const historyArray = JSON.parse(localStorage.getItem("calcHistory")) || [];
+    historyArray.push(entry);
+    localStorage.setItem("calcHistory", JSON.stringify(historyArray));
+  }
+
+  function updateComment(id, newComment) {
+    let historyArray = JSON.parse(localStorage.getItem("calcHistory")) || [];
+    historyArray = historyArray.map(entry =>
+      entry.id === id ? { ...entry, comment: newComment } : entry
+    );
+    localStorage.setItem("calcHistory", JSON.stringify(historyArray));
+  }
+
+  function deleteEntry(id) {
+    let historyArray = JSON.parse(localStorage.getItem("calcHistory")) || [];
+    historyArray = historyArray.filter(entry => entry.id !== id);
+    localStorage.setItem("calcHistory", JSON.stringify(historyArray));
+    renderAllHistory();
+  }
+
+  function clearAllHistory() {
+    if (confirm("すべての履歴を削除しますか？")) {
+      localStorage.removeItem("calcHistory");
+      renderAllHistory();
+    }
+  }
+
+function saveSortedOrder() {
+  const container = document.getElementById("history-entries");
+  const newOrder = Array.from(container.children).map(div => parseInt(div.dataset.id));
+  let historyArray = JSON.parse(localStorage.getItem("calcHistory")) || [];
+
+  const reordered = newOrder.reverse().map(id => historyArray.find(entry => entry.id === id));
+  localStorage.setItem("calcHistory", JSON.stringify(reordered));
+}
+
+function setOperator(op) {
+  const num1 = parseFloat(document.getElementById("num1").value);
+  const num2 = parseFloat(document.getElementById("num2").value);
+  const resultBox = document.getElementById("result");
+
+  // 両方の数値が入力されているなら即座に計算
+  if (!isNaN(num1) && !isNaN(num2)) {
+    currentOperator = op;
+    calculate(); // 演算子を記憶してから計算
+    return;
+  }
+
+  // 数値1だけ入力されている場合は演算子だけ記憶
+  if (!isNaN(num1) && isNaN(num2)) {
+    currentOperator = op;
+    resultBox.textContent = `演算子「${op}」を記憶しました。数値2を入力してください`;
+    return;
+  }
+
+  // それ以外（num1すらない）
+  resultBox.textContent = "数値1を入力してください";
+}
+
+function exportHistoryAsHTML() {
+  const historyArray = JSON.parse(localStorage.getItem("calcHistory")) || [];
+
+  if (historyArray.length === 0) {
+    alert("履歴がありません。");
+    return;
+  }
+
+  let html = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>計算履歴</title>
+  <style>
+    body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
+    .entry { margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+    .formula { font-weight: bold; }
+    .comment { color: #555; }
+  </style>
+</head>
+<body>
+  <h1>計算履歴</h1>\n`;
+
+  historyArray.forEach(entry => {
+    html += `<div class="entry">
+      <div>計算式： ${entry.formula} = ${formatNumber(entry.result)}</div>\n`;
+    if (entry.comment && entry.comment.trim() !== "") {
+      html += `<div class="comment">コメント：${entry.comment}</div>\n`;
+    }
+    html += `</div>\n`;
+  });
+
+  html += "</body>\n</html>";
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "計算履歴.html";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function exportHistoryAsPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  // ✅ 日本語フォントの登録
+  doc.addFileToVFS("NotoSansJP-Regular.ttf", window.NotoSansJP_Base64);
+  doc.addFont("NotoSansJP-Regular.ttf", "NotoSansJP", "normal");
+  doc.setFont("NotoSansJP");
+
+  doc.setFontSize(16);
+  doc.text("計算履歴", 40, 40);
+
+  const historyArray = JSON.parse(localStorage.getItem("calcHistory")) || [];
+  if (historyArray.length === 0) {
+    alert("履歴がありません。");
+    return;
+  }
+
+  const rows = historyArray.map(entry => [
+    entry.formula,
+    formatNumber(entry.result),
+    entry.comment || ""
+  ]);
+
+  doc.autoTable({
+    head: [["計算式", "答え", "コメント"]],
+    body: rows,
+    startY: 60,
+    styles: {
+      font: "NotoSansJP",
+      fontSize: 10,
+      cellPadding: 8,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.2,
+      valign: 'top'
+    },
+    headStyles: {
+      fillColor: [33, 150, 243],
+      textColor: [255, 255, 255],
+      halign: 'center'
+    },
+    columnStyles: {
+      0: { cellWidth: doc.internal.pageSize.getWidth() / 3 - 20 },
+      1: { cellWidth: doc.internal.pageSize.getWidth() / 6, halign: 'right' },  // 答え（右揃えにする！）
+      2: { cellWidth: doc.internal.pageSize.getWidth() / 2 - 40 }
+    },
+    margin: { left: 40, right: 40 }
+  });
+
+  doc.save("計算履歴.pdf");
+}
+
+function formatNumber(val) {
+  // 数値なら3桁区切り、それ以外（"0で割れません"など）はそのまま
+  return (typeof val === 'number')
+    ? val.toLocaleString('ja-JP')
+    : val;
+}
+
+</script>
+</body>
+</html>
