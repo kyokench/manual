@@ -556,10 +556,10 @@ img{
 
 .search-wrapper input#sidebar-search-box {
   width: 100%;
-  padding: 8px 12px 8px 36px; /* 左にアイコン幅＋余白 */
+  padding: 4px 12px 4px 36px; /* 左にアイコン幅＋余白 */
   border: 1px solid #ccc;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
   box-sizing: border-box;
   transition: border-color 0.3s, box-shadow 0.3s;
 }
