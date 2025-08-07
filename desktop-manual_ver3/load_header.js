@@ -169,6 +169,65 @@ document.addEventListener('DOMContentLoaded', function () {
   const allTodos = JSON.parse(localStorage.getItem('todos')) || [];
   const sidebarTodos = allTodos.filter(todo => !todo.completed).slice(0, 5); // 最大5件まで表示
 
+  // ───────────────────────────────────────────────
+  // 5.5. サイドバー末尾に検索欄・検索結果表示を追加
+  // ───────────────────────────────────────────────
+  const searchContainer = document.createElement('div');
+  // デザインはお好みで調整を
+  searchContainer.style.padding     = '10px 15px';
+  searchContainer.style.borderTop   = '1px solid #777';
+  searchContainer.style.marginTop   = '15px';
+  searchContainer.innerHTML = `
+    <div class="search-wrapper">
+      <span class="search-icon">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             viewBox="0 0 24 24"
+             fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round">
+          <!-- レンズ部分 -->
+          <circle cx="11" cy="11" r="8"></circle>
+          <!-- 持ち手を長く：開始点を (23,23) に -->
+          <line x1="23" y1="23" x2="16.65" y2="16.65"></line>
+        </svg>
+      </span>
+      <input
+        type="text"
+        id="sidebar-search-box"
+        placeholder="検索…"
+      >
+    </div>
+    <ul id="sidebar-search-results"></ul>
+  `;
+  sidebarElement.appendChild(searchContainer);
+
+  // 検索処理
+  const searchBox     = document.getElementById('sidebar-search-box');
+  const searchResults = document.getElementById('sidebar-search-results');
+
+  searchBox.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    searchResults.innerHTML = '';
+    if (!q) return;  // 空入力時は何も表示しない
+
+    window.manualData.forEach(item => {
+      // タイトルまたは URL にクエリ文字列が含まれる場合にマッチ
+      if (
+        (item.title  && item.title.toLowerCase().includes(q)) ||
+        (item.url    && item.url.toLowerCase().includes(q))
+      ) {
+        const li = document.createElement('li');
+        const a  = document.createElement('a');
+        a.href        = item.url;
+        a.textContent = item.title || item.url;
+        a.style.display = 'block';
+        a.style.padding = '4px 0';
+        li.appendChild(a);
+        searchResults.appendChild(li);
+      }
+    });
+  });
+
   /*───────────────────────────────────────────────
     6. クイックメモの表示
   ───────────────────────────────────────────────*/

@@ -490,6 +490,90 @@ img{
 .icon-btn{ border:none; background:transparent; cursor:pointer; padding:4px; line-height:1; }
 .icon-btn:hover{ opacity:.85; }
 
+/* ─── Sidebar 検索欄 ─── */
+#sidebar-search-box {
+  width: 100%;
+  padding: 8px 12px;
+  margin: 5px 0 8px;          /* 上にスペース、下に検索結果との余白 */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+#sidebar-search-box:focus {
+  border-color: #66afe9;
+  box-shadow: 0 0 5px rgba(102, 175, 233, 0.6);
+  outline: none;
+}
+
+/* ─── 検索結果リスト ─── */
+#sidebar-search-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#sidebar-search-results li {
+  margin-bottom: 4px;
+}
+
+#sidebar-search-results li a {
+  display: block;
+  padding: 6px 8px;
+  text-decoration: none;
+  color: #333;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+#sidebar-search-results li a:hover {
+  background-color: #f5f5f5;
+}
+
+/* ── 検索アイコン付き入力 ── */
+.search-wrapper {
+  position: relative;
+  margin: 0px 0 8px;
+}
+
+/* 変更後：下に 2px シフト */
+.search-wrapper .search-icon {
+  position: absolute;
+  left: 10px;
+  top: calc(50% + 0px);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.search-wrapper .search-icon svg {
+  width: 16px;
+  height: 16px;
+  color: #888;              /* 通常時のアイコン色 */
+  transition: color 0.3s;
+}
+
+.search-wrapper input#sidebar-search-box {
+  width: 100%;
+  padding: 8px 12px 8px 36px; /* 左にアイコン幅＋余白 */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.search-wrapper:focus-within .search-icon svg {
+  color: #66afe9;           /* フォーカス時にアイコンをカラー変更 */
+}
+
+.search-wrapper input#sidebar-search-box:focus {
+  border-color: #66afe9;
+  box-shadow: 0 0 5px rgba(102,175,233,0.6);
+  outline: none;
+}
+
 /* フェードイン／フェードアウト用キーフレーム */
 @keyframes toast-fade-in {
   from {
