@@ -1,3 +1,16 @@
+:root { --memo-w: 420px; }                    /* 通常幅 */
+body.sidebar-open { --memo-w: 330px; }        /* サイドバー開時の通常幅 */
+body.memo-wide { --memo-w: 840px; }           /* ワイド幅（サイドバー閉時） */
+body.sidebar-open.memo-wide { --memo-w: 620px; } /* サイドバー開時のワイド幅 */
+
+.header-icons {
+  display: none; /* 初期状態で非表示 */
+}
+
+body.sidebar-open .header-icons {
+  display: flex; /* サイドバーが開いたときだけ表示 */
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
@@ -6,32 +19,49 @@ body {
 }
 
 .main-header {
-    background-color: #2c3e50; /* Dark blue/grey */
-    color: #ecf0f1; /* Light grey */
-    padding: 0.8rem 0;
+    height: 42px; /* ← 高さを40pxに */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: #2c3e50;
+    color: #ecf0f1;
+    display: flex;
+    align-items: center;
+    padding: 1px 5px 3px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    box-sizing:border-box;
-}
-
-.main a{
- text-decoration: none;
-}
-
-.main pre{
- font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
- margin:0;
- white-space: pre-wrap;
+    z-index: 999;
+    box-sizing: border-box;
 }
 
 .main-header .container {
   display: flex;
   justify-content: flex-start;
   align-items: center;
+  height: 100%;          /* 高さを親と揃える */
   width: 100%;         /* ← max-widthをやめて100%表示に */
   margin: 0;           /* ← 中央寄せを解除 */
   box-sizing:border-box;
   padding: 0 20px;
 }
+
+
+.page-wrapper {
+    margin-top: 40px;
+}
+
+.main a{
+ text-decoration: none;
+ font-size:14px;
+}
+
+.main pre{
+ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+ margin:0;
+ white-space: pre-wrap;
+ font-size:15px;
+}
+
 
 .header-left {
     display: flex;
@@ -41,14 +71,14 @@ body {
 .main-header .logo a {
     color: #ecf0f1;
     text-decoration: none;
-    font-size: 26px;
+    font-size: 20px;
     font-weight: 700;
     letter-spacing: 1px;
     margin-left: 20px; /* ハンバーガーメニューとの間隔 */
 }
 
 .main-nav {
-    margin-left: 20px; /* サイト名との間隔 */
+    margin-left: 13px; /* サイト名との間隔 */
 }
 
 .main-nav ul {
@@ -65,7 +95,7 @@ body {
 .main-nav ul li a {
     color: #ecf0f1;
     text-decoration: none;
-    font-size: 1.1rem;
+    font-size: 0.95rem; /* ← 元は1.1rem。控えめに調整 */
     font-weight: 500;
     transition: color 0.3s ease, transform 0.2s ease;
     position: relative;
@@ -93,40 +123,41 @@ body {
 
 /*★★★ ハンバーガーメニューのスタイル ★★★*/
 .hamburger-menu {
-    width: 30px;
-    height: 20px;
+    width: 19px;
+    height: 12px;
     background: transparent;
     border: none;
     cursor: pointer;
     padding: 0;
     position: relative;
     z-index: 1000;
+    margin-top: 4px; /* ← この行を追加：下にずらす */
 }
 
 .hamburger-menu .bar {
     display: block;
     width: 100%;
-    height: 3px;
+    height: 1.5px;
     background-color: #ecf0f1;
-    border-radius: 3px;
+    border-radius: 2px;
     transition: all 0.3s ease-in-out;
     position: absolute;
     left: 0;
 }
 
 .hamburger-menu .bar:nth-child(1) { top: 0; }
-.hamburger-menu .bar:nth-child(2) { top: 8px; }
-.hamburger-menu .bar:nth-child(3) { top: 16px; }
+.hamburger-menu .bar:nth-child(2) { top: 5px; }
+.hamburger-menu .bar:nth-child(3) { top: 10px; }
 
-/* ハンバーガーメニューのアニメーション */
+/* 開いた時の変形（アニメーション） */
 .hamburger-menu.active .bar:nth-child(1) {
-    transform: translateY(8px) rotate(45deg);
+    transform: translateY(5px) rotate(45deg);
 }
 .hamburger-menu.active .bar:nth-child(2) {
     opacity: 0;
 }
 .hamburger-menu.active .bar:nth-child(3) {
-    transform: translateY(-8px) rotate(-45deg);
+    transform: translateY(-5px) rotate(-45deg);
 }
 
 /* ページ全体のレイアウト */
@@ -137,21 +168,38 @@ body {
 
 /* サイドバーのスタイル */
 #sidebar {
+    position: fixed;
+    top: 40px;  /* ← ヘッダーの高さに合わせる */
+    left: 0;
+    height: calc(100% - 50px);
     width: 0;
-    background-color: #34495e; /* Darker blue/grey */
+    background-color: #34495e;
     color: #ecf0f1;
-    padding-top: 20px;
     overflow-x: hidden;
     transition: width 0.15s ease-in-out;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-    flex-shrink: 0;
-    height:500px;
+    z-index: 998;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
+/* サイドバーが開いたときの幅 */
 #sidebar.active {
-    width: 250px; /* サイドバーの幅 */
-    padding: 20px;
+    width: 250px;
 }
+
+/* コンテンツラッパー */
+.content-wrapper {
+    flex-grow: 1;
+    transition: padding-left 0.3s ease-in-out;
+    padding-left: 0;
+    max-width:100%;
+}
+
+/* サイドバーが開いているときに右にずらす */
+.content-wrapper.sidebar-active {
+    margin-left: 0; /* サイドバーが開いたときにコンテンツがずれないように */
+    padding-left: 250px;
+}
+
 
 #sidebar h2 {
     text-align: center;
@@ -162,6 +210,7 @@ body {
 #sidebar ul {
     list-style: none;
     padding: 0;
+    font-size:14px;
 }
 
 #sidebar ul li a {
@@ -176,28 +225,21 @@ body {
     background-color: #4a627a;
 }
 
-/* コンテンツラッパーのスタイル */
-.content-wrapper {
-    flex-grow: 1;
-    transition: margin-left 0.3s ease-in-out;
-}
-
-.content-wrapper.sidebar-active {
-    margin-left: 0; /* サイドバーが開いたときにコンテンツがずれないように */
-}
 
 /* メインコンテンツのスタイル */
 .main{
- width:750px;
- margin-top: 20px;
+ width:100%;
+ max-width:720px;
+ margin-top: 17px;
  margin-left:30px;
  min-height: 500px;
  background-color: #fff;
  padding:20px 30px 20px;
+ box-sizing:border-box;
 }
 
 .hyoudai{
- font-size:26px;
+ font-size:23px;
  text-align:center;
  margin-bottom:-20px;
 }
@@ -209,10 +251,10 @@ body {
  padding-top: 2px;
  padding-bottom: 2px;
  line-height:1.4;
- font-size:18px;
+ font-size:16px;
  letter-spacing: 1.6px;
  white-space: nowrap;
- margin-bottom: 15px !important; 
+ margin-bottom: 10px !important; 
 }
 
 .head-a {
@@ -222,7 +264,7 @@ body {
  padding-top: 3px;
  padding-bottom: 3px;
  line-height:1.4;
- font-size:19px;
+ font-size:18px;
  letter-spacing: 1.6px;
  white-space: nowrap;
  margin-bottom: -22px !important; 
@@ -237,7 +279,7 @@ body {
  width:92%;
  background-color:#efefef;
  border:solid 1px gray;
- margin-left:5px;
+ margin-left:12px;
  padding-bottom: 20px;
  padding-right: 20px;
  padding-left: 20px;
@@ -252,7 +294,7 @@ body {
  width:92%;
  background-color:#efefef;
  border:solid 1px gray;
- margin-left:5px;
+ margin-left:12px;
  padding-bottom: 20px;
  padding-right: 20px;
  padding-left: 20px;
@@ -290,6 +332,15 @@ body {
  padding: 0px 10px 30px 20px;
  margin-bottom:-10px;
   line-height: 1.7;
+}
+
+.picmax{
+ width:100%;
+ border:solid 1px;
+}
+
+img{
+ max-width:100%;
 }
 
 /* TODOリストのスタイル */
@@ -388,49 +439,198 @@ body {
     background-color: #c82333;
 }
 
-explorer_open.vbs
-Cドライブのscriptsフォルダにいれる
 
-' explorer_open.vbs
-' 引数で渡されたパスをエクスプローラーで開く
+/* ==== Memo Panel ==== */
+.memo-toggle{
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #ecf0f1;
+  cursor: pointer;
+  padding: 6px 8px;
+  display: inline-flex;
+  align-items: center;
+}
+.memo-toggle:hover{ opacity:.85; }
 
-Option Explicit
+#memo-panel{
+  position: fixed;
+  top: 42px;               /* ヘッダー高に合わせる */
+  right: 0;
+  height: calc(100% - 42px);
+  width: var(--memo-w);
+  max-width: calc(100vw - var(--sidebar-w) - 12px); /* 画面が狭い時の保険 */
+  background: #ffffff;
+  border-left: 1px solid #ddd;
+  box-shadow: -2px 0 8px rgba(0,0,0,.08);
+  transform: translateX(100%);
+  transition: transform .2s ease-in-out, width .2s ease-in-out;
+  z-index: 1000;           /* ヘッダー(999)より上にしない */
+}
+#memo-panel.active{ transform: translateX(0); }
 
-Dim shell, args, encodedPath, path
+#memo-panel .memo-header{
+  display:flex; align-items:center; justify-content:space-between;
+  height:40px; padding:0 10px; border-bottom:1px solid #eee; background:#f7f7f7;
+  font-size:14px; color:#333;
+}
+#memo-close{
+  border:none; background:transparent; cursor:pointer; font-size:18px; line-height:1;
+}
 
-Set shell = CreateObject("WScript.Shell")
-Set args = WScript.Arguments
+#memo-text{
+  width: 100%; height: calc(100% - 40px);
+  border: none; outline: none; resize: none;
+  padding: 12px; box-sizing: border-box;
+  font-size: 14px; color:#333;
+}
 
-If args.Count = 0 Then
-    MsgBox "パスが指定されていません。", vbExclamation, "エクスプローラーを開けません"
-    WScript.Quit
-End If
+.memo-header{ display:flex; align-items:center; justify-content:space-between; height:40px; padding:0 10px; border-bottom:1px solid #eee; background:#f7f7f7; font-size:14px; color:#333; }
+.memo-actions{ display:flex; gap:6px; align-items:center; }
+.icon-btn{ border:none; background:transparent; cursor:pointer; padding:4px; line-height:1; }
+.icon-btn:hover{ opacity:.85; }
 
-' 引数から explorer: を除去（ループ防止）
-encodedPath = args(0)
-If LCase(Left(encodedPath, 9)) = "explorer:" Then
-    encodedPath = Mid(encodedPath, 10)
-End If
+/* ─── Sidebar 検索欄 ─── */
+#sidebar-search-box {
+  width: 100%;
+  padding: 8px 12px;
+  margin: 5px 0 8px;          /* 上にスペース、下に検索結果との余白 */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
 
-' デコード（念のため %20 などをスペースに戻す）
-encodedPath = Replace(encodedPath, "%20", " ")
-encodedPath = Replace(encodedPath, "%5C", "\")
-encodedPath = Replace(encodedPath, "%25", "%") ' %25 = %
+#sidebar-search-box:focus {
+  border-color: #66afe9;
+  box-shadow: 0 0 5px rgba(102, 175, 233, 0.6);
+  outline: none;
+}
 
-' 最後の \index.html などを削除してフォルダパスに変換（もし拡張子が .html なら）
-If LCase(Right(encodedPath, 5)) = ".html" Then
-    path = Left(encodedPath, InStrRev(encodedPath, "\") - 1)
-Else
-    path = encodedPath
-End If
+/* ─── 検索結果リスト ─── */
+#sidebar-search-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
 
-' パスが存在するか確認
-Dim fso
-Set fso = CreateObject("Scripting.FileSystemObject")
-If Not fso.FolderExists(path) Then
-    MsgBox "指定されたパスが存在しません: " & vbCrLf & path, vbExclamation, "エクスプローラーで開けません"
-    WScript.Quit
-End If
+#sidebar-search-results li {
+  margin-bottom: 4px;
+}
 
-' エクスプローラーで開く
-shell.Run "explorer.exe """ & path & """", 1, False
+#sidebar-search-results li a {
+  display: block;
+  padding: 6px 8px;
+  text-decoration: none;
+  color: #333;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+#sidebar-search-results li a:hover {
+  background-color: #f5f5f5;
+}
+
+/* ── 検索アイコン付き入力 ── */
+.search-wrapper {
+  position: relative;
+  margin: 0px 0 8px;
+}
+
+/* 変更後：下に 2px シフト */
+.search-wrapper .search-icon {
+  position: absolute;
+  left: 10px;
+  top: calc(50% + 0px);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.search-wrapper .search-icon svg {
+  width: 16px;
+  height: 16px;
+  color: #888;              /* 通常時のアイコン色 */
+  transition: color 0.3s;
+}
+
+.search-wrapper input#sidebar-search-box {
+  width: 100%;
+  padding: 4px 12px 4px 36px; /* 左にアイコン幅＋余白 */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.search-wrapper:focus-within .search-icon svg {
+  color: #66afe9;           /* フォーカス時にアイコンをカラー変更 */
+}
+
+.search-wrapper input#sidebar-search-box:focus {
+  border-color: #66afe9;
+  box-shadow: 0 0 5px rgba(102,175,233,0.6);
+  outline: none;
+}
+
+/* フェードイン／フェードアウト用キーフレーム */
+@keyframes toast-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+@keyframes toast-fade-out {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+}
+
+/* トーストのベーススタイル */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+}
+
+/* 表示アニメーション */
+#toast.show {
+  animation: toast-fade-in 0.8s ease-out forwards;
+}
+
+/* 非表示アニメーション */
+#toast.hide {
+  animation: toast-fade-out 0.8s ease-in forwards;
+}
+
+@media screen and (max-width: 768px) {
+  .main {
+    margin-left: 0px;
+    padding: 20px;
+  }
+
+.graybox {width:90%;}
+.grayboxpre {width:90%;}
+
+
+  /* 必要に応じて sidebar や hamburger を再配置 */
+}
