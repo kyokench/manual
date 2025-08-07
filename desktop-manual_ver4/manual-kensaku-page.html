@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>マニュアルをタイトルで検索してリンクを表示するページ</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    #search-box {
+      width: 100%;
+      padding: 8px;
+      margin: 16px 0;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #search-results {
+      list-style: none;
+      padding-left: 0;
+    }
+    #search-results li {
+      margin-bottom: 8px;
+    }
+    #search-results a {
+      text-decoration: none;
+      color: #333;
+    }
+    #search-results a:hover {
+      text-decoration: underline;
+    }
+  </style>
+  <script src="../manual-index.js"></script>
+</head>
+<body>
+<div id="header-placeholder"></div>
+<div class="page-wrapper">
+  <aside id="sidebar">
+    <!-- サイドバーは空のまま -->
+  </aside>
+
+  <div class="content-wrapper">
+    <div class="main">
+      <h1 class="hyoudai" style="margin-bottom:0;">マニュアルをタイトルで検索してリンクを表示するページ</h1>
+
+      <input type="text" id="search-box" placeholder="マニュアルを検索">
+      <ul id="search-results"></ul>
+    </div>
+  </div>
+</div>
+
+<script src="../load_header.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchBox = document.getElementById('search-box');
+    const searchResults = document.getElementById('search-results');
+
+    if (typeof window.manualData === 'undefined') {
+      console.warn('manualData が読み込まれていません。');
+      return;
+    }
+
+    searchBox.addEventListener('input', function () {
+      const query = this.value.trim().toLowerCase();
+      searchResults.innerHTML = '';
+
+      if (!query) return;
+
+      const filtered = window.manualData.filter(item => item.title.toLowerCase().includes(query));
+      filtered.forEach(item => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = item.url;
+        a.textContent = item.title;
+        a.target = '_blank';
+        li.appendChild(a);
+        searchResults.appendChild(li);
+      });
+
+      if (filtered.length === 0) {
+        const li = document.createElement('li');
+        li.textContent = '該当するマニュアルが見つかりません';
+        searchResults.appendChild(li);
+      }
+    });
+  });
+</script>
+</body>
+</html>
