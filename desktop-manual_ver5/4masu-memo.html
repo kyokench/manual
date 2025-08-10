@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>４マスメモ（ローカル版）—グリッドメニュー完全版</title>
+  <link rel="stylesheet" href="../style.css?20250630">
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://◯◯◯◯◯.github.io/4masumemo/NotoSansJP-Regular-base64_2.js"></script>
+
+  <style>
+    /* ====== 既存テーブル周り ====== */
+    table.memo.normal { width: 100%; max-width: 900px; border-collapse:collapse; margin:24px auto; }
+    table.memo.wide { width: 100%; max-width: 1200px; border-collapse:collapse; margin:24px auto; }
+    .memo th, .memo td { border:1px solid #ccc; text-align:center; vertical-align: top; }
+    .memo th { background:#e9ecef; }
+    .memo td { padding: 0; vertical-align: top; }
+    .memo td textarea { width: 100%; min-height: 480px; resize: none; overflow: hidden; box-sizing: border-box; border: none; outline: none; box-shadow: none; background-color: transparent; padding: 8px; }
+
+
+    .save-btn { display:block; width:100%; max-width:200px; margin:16px auto; padding:8px 0; }
+    /* 元: #toast と #toast.show */
+    #memoToast {
+      position:fixed;
+      left:50%;
+      bottom:40px;
+      transform:translateX(-50%);
+      background:#333;
+      color:#fff;
+      padding:8px 16px;
+      border-radius:4px;
+      font-size:.9rem;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .3s;
+    }
+    #memoToast.show {
+      opacity:1;
+    }
+    .title-bar { display: flex; align-items: center; gap: 12px; margin-left: 16px; }
+
+    /* ====== 新メニュー（9ドットグリッド） ====== */
+    .menu-trigger { position: relative; display: inline-flex; align-items: center; }
+    .menu-button {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border: 1px solid #d0d7de; border-radius: 8px;
+      background: #fff; cursor: pointer; padding: 0; line-height: 1;
+    }
+    .menu-button:hover { background: #f6f8fa; }
+    .menu-button:focus-visible { outline: 2px solid #4c9aff; outline-offset: 2px; }
+    .icon-grid { display: block; }
+
+    .menu-list {
+      display: none; position: absolute; top: 44px; left: 0; background: #fff;
+      border: 1px solid #ccc; border-radius: 8px; list-style: none;
+      padding: 6px 0; margin: 0; min-width: 200px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 1000;
+    }
+    .menu-trigger.open .menu-list { display: block; }
+    .menu-list li { padding: 10px 14px; cursor: pointer; white-space: nowrap; }
+    .menu-list li:hover { background-color: #f0f0f0; }
+  </style>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+<div class="page-wrapper">
+  <aside id="sidebar"></aside>
+  <div class="content-wrapper">
+    <div class="main" id="main">
+
+      <div class="title-bar">
+        <!-- ▼ 9ドットのグリッドメニュー（ハンバーガー代替） -->
+        <div class="menu-trigger">
+          <button class="menu-button" aria-label="メニュー" aria-haspopup="true" aria-expanded="false">
+            <svg class="icon-grid" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+              <g>
+                <circle cx="5"  cy="5"  r="1.6"></circle>
+                <circle cx="12" cy="5"  r="1.6"></circle>
+                <circle cx="19" cy="5"  r="1.6"></circle>
+                <circle cx="5"  cy="12" r="1.6"></circle>
+                <circle cx="12" cy="12" r="1.6"></circle>
+                <circle cx="19" cy="12" r="1.6"></circle>
+                <circle cx="5"  cy="19" r="1.6"></circle>
+                <circle cx="12" cy="19" r="1.6"></circle>
+                <circle cx="19" cy="19" r="1.6"></circle>
+              </g>
+            </svg>
+          </button>
+          <ul class="menu-list" role="menu">
+            <li role="menuitem" onclick="setMemoWidth('wide')">横幅を大きくする</li>
+            <li role="menuitem" onclick="setMemoWidth('normal')">横幅を通常に戻す</li>
+            <li role="menuitem" id="savePdfBtn">PDFで保存</li>
+          </ul>
+        </div>
+        <h2>４マスメモ（ローカル版）</h2>
+      </div>
+
+      <button id="saveTop" class="save-btn">保存</button>
+
+      <form id="memoForm">
+        <table class="memo normal" id="memoTable">
+          <thead><tr><th>項目 1</th><th>項目 2</th></tr></thead>
+          <tbody>
+            <tr><td><textarea data-cell="0-0"></textarea></td>
+                <td><textarea data-cell="0-1"></textarea></td></tr>
+            <tr><td><textarea data-cell="1-0"></textarea></td>
+                <td><textarea data-cell="1-1"></textarea></td></tr>
+          </tbody>
+        </table>
+      </form>
+
+      <button id="saveBottom" class="save-btn">保存</button>
+      <button id="htmlBtn" class="save-btn">HTMLで保存</button>
+      <button id="pdfBtn" class="save-btn">PDF で保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="memoToast">保存しました</div>
+
+<script>
+  const form = document.getElementById('memoForm');
+  const memoToast = document.getElementById('memoToast');
+  const lsKey = 'memo_2x2';
+
+  function showMemoToast() {
+    memoToast.classList.add('show');
+    setTimeout(() => memoToast.classList.remove('show'), 2000);
+  }
+
+  function autoResizeTextarea(el){
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  function loadMemo(){
+    const data = JSON.parse(localStorage.getItem(lsKey) || '{}');
+    form.querySelectorAll('textarea').forEach(ta => {
+      ta.value = data[ta.dataset.cell] || '';
+      autoResizeTextarea(ta);
+    });
+  }
+
+  function saveMemo(){
+    const data = {};
+    form.querySelectorAll('textarea').forEach(ta => {
+      data[ta.dataset.cell] = ta.value;
+    });
+    localStorage.setItem(lsKey, JSON.stringify(data));
+    showMemoToast(); // ← 関数名変更
+  }
+
+  document.getElementById('saveTop').onclick =
+  document.getElementById('saveBottom').onclick = e => {
+    e.preventDefault();
+    saveMemo();
+  };
+
+  form.querySelectorAll('textarea').forEach(t => {
+    autoResizeTextarea(t);
+    t.addEventListener('input', () => autoResizeTextarea(t));
+  });
+  loadMemo();
+
+  document.getElementById('htmlBtn').onclick = () => {
+    saveMemo();
+    const vals = [...form.querySelectorAll('textarea')].map(t => t.value.replace(/\n/g, '<br>'));
+    const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>4マスメモ - HTML出力</title>
+    <style>body{font-family:sans-serif;padding:20px}
+    h1{font-size:20px;margin-bottom:20px}
+    table{border-collapse:collapse;width:100%;max-width:900px;margin-top:20px;table-layout:fixed}
+    th,td{border:1px solid #999;padding:10px;font-size:14px;vertical-align:top;width:50%;word-wrap:break-word}
+    th{background:#f2f2f2}</style></head><body>
+    <h1>メモ</h1><table><thead><tr><th>項目 1</th><th>項目 2</th></tr></thead>
+    <tbody><tr><td>${vals[0]}</td><td>${vals[1]}</td></tr><tr><td>${vals[2]}</td><td>${vals[3]}</td></tr></tbody></table></body></html>`;
+
+    const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `memo_2x2_${Date.now()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // ▼ メニュー内の PDF 保存（メニューの「PDFで保存」）
+  document.addEventListener('DOMContentLoaded', () => {
+    const savePdfMenuItem = document.getElementById('savePdfBtn');
+    if (savePdfMenuItem) {
+      savePdfMenuItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+        doc.addFileToVFS('NotoSansJP-Regular.ttf', window.NotoSansJP_Base64);
+        doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
+        doc.setFont('NotoSansJP');
+        doc.setFontSize(16);
+
+        const tableData = [];
+        document.querySelectorAll('.memo tr').forEach((row) => {
+          const rowData = [];
+          row.querySelectorAll('td textarea').forEach((textarea) => {
+            rowData.push((textarea.value || '').replace(/\r\n|\r/g, '\n'));
+          });
+          if (rowData.length > 0) tableData.push(rowData);
+        });
+
+        doc.autoTable({
+          head: [['項目 1', '項目 2']],
+          body: tableData,
+          startY: 60,
+          styles: { font: 'NotoSansJP', fontSize: 10, cellPadding: 8, valign: 'top', lineColor: [0,0,0], lineWidth: 0.2 },
+          headStyles: { fillColor: [100,100,100], fontStyle: 'normal', halign: 'center' },
+          columnStyles: {
+            0: { cellWidth: doc.internal.pageSize.getWidth() / 2 - 40 },
+            1: { cellWidth: doc.internal.pageSize.getWidth() / 2 - 40 }
+          },
+          margin: { left: 40, right: 40 }
+        });
+
+        doc.save('4masu-memo.pdf');
+
+        // メニューを閉じる
+        const trigger = document.querySelector('.menu-trigger');
+        if (trigger) {
+          trigger.classList.remove('open');
+          const btn = trigger.querySelector('.menu-button');
+          if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+  });
+
+  // ▼ 下部の PDF ボタン
+  document.getElementById('pdfBtn').onclick = () => {
+    saveMemo();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    doc.addFileToVFS('NotoSansJP-Regular.ttf', window.NotoSansJP_Base64);
+    doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
+    doc.setFont('NotoSansJP');
+    doc.setFontSize(16);
+    doc.text('メモ', 40, 40);
+
+    const vals = [...document.querySelectorAll('textarea')].map(t => (t.value || '').replace(/\r\n|\r/g, '\n'));
+    const body = [[vals[0], vals[1]], [vals[2], vals[3]]];
+    doc.autoTable({
+      head: [['項目 1', '項目 2']],
+      body,
+      startY: 60,
+      styles: { font: 'NotoSansJP', fontSize: 10, cellPadding: 8, valign: 'top', lineColor: [0,0,0], lineWidth: 0.2 },
+      headStyles: { fillColor: [100,100,100], fontStyle: 'normal', halign: 'center' },
+      columnStyles: {
+        0: { cellWidth: doc.internal.pageSize.getWidth() / 2 - 40 },
+        1: { cellWidth: doc.internal.pageSize.getWidth() / 2 - 40 }
+      },
+      margin: { left: 40, right: 40 }
+    });
+
+    doc.save(`memo_2x2_${Date.now()}.pdf`);
+    showMemoToast(); // ← 関数名変更
+  };
+
+  // ====== 幅切り替え ======
+  function setMemoWidth(size) {
+    const memoTable = document.getElementById('memoTable');
+    const mainDiv = document.getElementById('main');
+
+    memoTable.classList.remove('normal', 'wide');
+    memoTable.classList.add(size);
+
+    if (size === 'wide') {
+      mainDiv.style.width = '1200px';
+      mainDiv.style.maxWidth = '100%';
+    } else {
+      mainDiv.style.width = '850px';
+      mainDiv.style.maxWidth = '100%';
+    }
+
+    localStorage.setItem('memoWidth', size);
+  }
+
+  function loadMemoWidth() {
+    const savedWidth = localStorage.getItem('memoWidth') || 'normal';
+    setMemoWidth(savedWidth);
+  }
+
+  // ====== メニュー開閉 ======
+  function toggleMenu(container) {
+    const isOpen = container.classList.toggle('open');
+    const btn = container.querySelector('.menu-button');
+    if (btn) btn.setAttribute('aria-expanded', String(isOpen));
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadMemoWidth();
+
+    const trigger = document.querySelector('.menu-trigger');
+    const button = trigger?.querySelector('.menu-button');
+
+    if (button) {
+      button.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMenu(trigger);
+      });
+    }
+
+    // 外側クリックで閉じる
+    document.addEventListener('click', (e) => {
+      const open = document.querySelector('.menu-trigger.open');
+      if (open && !e.target.closest('.menu-trigger')) {
+        open.classList.remove('open');
+        const btn = open.querySelector('.menu-button');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Escで閉じる
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const open = document.querySelector('.menu-trigger.open');
+        if (open) {
+          open.classList.remove('open');
+          const btn = open.querySelector('.menu-button');
+          if (btn) btn.setAttribute('aria-expanded', 'false');
+          btn?.focus();
+        }
+      }
+    });
+  });
+</script>
+
+<script src="../load_header.js"></script>
+</body>
+</html>
