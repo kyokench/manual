@@ -103,9 +103,25 @@ document.addEventListener('DOMContentLoaded', function () {
       <div class="header-right" style="margin-left:auto; display:flex; align-items:center; gap:6px;">
       <div class="header-icons">
 
-        <a data-path="\\\\◯◯◯◯◯\\◯◯◯◯◯\\◯◯◯◯◯" class="openfolder icon-btn" title="フォルダを開く" style="color: #ecf0f1; margin-right:7px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 6C3 4.89543 3.89543 4 5 4H9L11 6H19C20.1046 6 21 6.89543 21 8V18C21 19.1046 20.1046 20 19 20H5C3.89543 20 3 19.1046 3 18V6Z" />
+        <a href="https://www.google.co.jp" target="_blank" class="icon-btn" title="Google">
+          <img src="https://www.google.com/favicon.ico" alt="Google" style="width:18px; height:18px; margin-right:7px;">
+        </a>
+        <a href="https://chat.openai.com/" target="_blank" class="icon-btn" title="ChatGPT">
+          <img src="https://chat.openai.com/favicon.ico" alt="ChatGPT" style="width:18px; height:18px; margin-right:7px;">
+        </a>
+
+        <!-- TODOリスト -->
+        <a href="/◯◯◯/◯◯◯/kihon/todo.html" 
+           class="icon-btn" 
+           title="TODOリスト" 
+           style="margin-right:6px; color:#fff;">
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <!-- 枠（紙） -->
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/>
+            <!-- 横棒 -->
+            <line x1="7" y1="8" x2="17" y2="8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <!-- 縦棒 -->
+            <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </a>
 
@@ -116,12 +132,17 @@ document.addEventListener('DOMContentLoaded', function () {
         </svg>
         </button>
 
-        <a href="https://www.google.co.jp" target="_blank" class="icon-btn" title="Google">
-          <img src="https://www.google.com/favicon.ico" alt="Google" style="width:18px; height:18px; margin-right:9px;">
+        <!-- 4マスメモ -->
+        <a href="/◯◯◯/◯◯◯/kihon/4masu-memo.html" class="icon-btn" title="4マスメモ" style="margin-right:-5px; color:#fff;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+            <rect x="3" y="3" width="8" height="8" rx="1"></rect>
+            <rect x="13" y="3" width="8" height="8" rx="1"></rect>
+            <rect x="3" y="13" width="8" height="8" rx="1"></rect>
+            <rect x="13" y="13" width="8" height="8" rx="1"></rect>
+          </svg>
         </a>
-        <a href="https://chat.openai.com/" target="_blank" class="icon-btn" title="ChatGPT">
-          <img src="https://chat.openai.com/favicon.ico" alt="ChatGPT" style="width:18px; height:18px;">
-        </a>
+
+
       </div>
         <button class="memo-toggle" aria-label="メモを開く" title="メモ">
           <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -140,12 +161,12 @@ document.addEventListener('DOMContentLoaded', function () {
     <!-- <li><a href="${vscodeFolderUri}">VS Codeでフォルダを開く</a></li> -->
     <li><a href="${notepadFileUri}">メモ帳で開く</a></li>
     <li><a href="${explorerFolderUri}">フォルダを開く</a></li>
-    <li><a href="/◯◯◯◯◯/◯◯◯◯◯/kihon/todo.html">TODOリスト</a></li>
+    <li><a href="${vscodeFileUri}">VS Codeで開く</a></li>
+    <!--<li><a href="/◯◯◯/◯◯◯/kihon/todo.html">TODOリスト</a></li>-->
     <!--<li><a href="◯◯◯">カレンダー</a></li> -->
-    <li><a href="/◯◯◯◯◯/◯◯◯◯◯/kihon/4masu-memo.html">４マスメモ</a></li>
-    <li><a href="/◯◯◯◯◯/◯◯◯◯◯/kihon/calc.html">計算支援アプリ</a></li>
-    <li><a href="${vscodeFileUri}">VS Code</a></li>
-    <li><a href="/◯◯◯◯◯/◯◯◯◯◯/zakki/zakki.html">雑記</a></li>
+    <!--<li><a href="/◯◯◯/◯◯◯/kihon/4masu-memo.html">４マスメモ</a></li>-->
+    <li><a href="/◯◯◯/◯◯◯/kihon/calc.html">計算支援ツール</a></li>
+    <li><a href="/◯◯◯/◯◯◯/zakki/zakki.html">雑記</a></li>
     <li><a href="https://google.com" target="_blank">Google検索</a></li>
   </ul>`;
   document.getElementById('sidebar').innerHTML = sidebarContent;
